@@ -275,6 +275,8 @@ Fungsi main() ini menjadi titik awal eksekusi program dan berfungsi untuk menang
 - Jika Format Argumen Salah
     - Jika argumen tidak sesuai format yang dikenali, maka akan ditampilkan panduan penggunaan program agar       user tahu cara pakainya.
 
+### 6. Memasukkan password
+- Memasukkan password yang sudah didapatkan pada link yang tertera pada soal
 
 # Soal Keempat "Debugmon"
 
