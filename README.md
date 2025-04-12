@@ -278,6 +278,112 @@ Fungsi main() ini menjadi titik awal eksekusi program dan berfungsi untuk menang
 ### 6. Memasukkan password
 - Memasukkan password yang sudah didapatkan pada link yang tertera pada soal
 
+# Soal Kedua "starterkit"
+
+### 1. Fungsi Membuat Direktori (ensure_directory) Kode:
+```c
+void ensure_directory(const char *dir) {
+    struct stat st = {0};
+    if (stat(dir, &st) == -1) {
+        mkdir(dir, 0755);
+    }
+}
+```
+Penjelasan:
+- Memastikan direktori yang diberikan (misalnya: karantina, decrypted, starter_kit) tersedia.
+- Jika belum ada (stat() mengembalikan -1), maka akan dibuat dengan izin akses 0755.
+
+### 2. Download & Ekstrak Starter Kit Kode:
+```c
+void download_and_extract() {
+    ...
+    snprintf(cmd, sizeof(cmd), "wget --no-check-certificate '%s' -O '%s'", url, zip_name);
+    system(cmd);
+    ...
+    snprintf(cmd, sizeof(cmd), "unzip -o '%s' -d starter_kit", zip_name);
+    system(cmd);
+    ...
+}
+```
+Penjelasan:
+- Menggunakan wget untuk mengunduh file zip dari Google Drive.
+- Menggunakan unzip untuk mengekstrak isi file zip ke folder starter_kit.
+- Menghapus file zip setelah selesai.
+
+
+### 3. Memindahkan File dari starter_kit ke karantina Kode:
+```c
+void move_files(const char *source_dir, const char *target_dir) {
+    ...
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            char old_path[256], new_path[256];
+            snprintf(old_path, sizeof(old_path), "%s/%s", source_dir, entry->d_name);
+            snprintf(new_path, sizeof(new_path), "%s/%s", target_dir, entry->d_name);
+            rename(old_path, new_path);
+        }
+    }
+}
+```
+Penjelasan:
+- Membaca file reguler di direktori sumber.
+- Menggunakan rename() untuk memindahkan file ke direktori tujuan.
+- Kode ini dipanggil di main saat kamu menjalankan:
+    - ./starterkit --quarantine
+
+### 4. Dekripsi Nama File (Daemon Base64 Decoder) Kode:
+```c
+void decrypt_filenames() {
+    pid_t pid = fork();
+    if (pid < 0) exit(EXIT_FAILURE);
+    if (pid > 0) exit(EXIT_SUCCESS); // Parent exit
+    ...
+    while (1) {
+        DIR *dir = opendir("karantina");
+        ...
+        while ((entry = readdir(dir)) != NULL) {
+            if (entry->d_type != DT_REG) continue;
+
+            char old_path[256], new_path[256], decoded[256];
+            snprintf(old_path, sizeof(old_path), "karantina/%s", entry->d_name);
+
+            char cmd[512];
+            snprintf(cmd, sizeof(cmd), "echo %s | base64 -d", entry->d_name);
+            FILE *fp = popen(cmd, "r");
+            ...
+            snprintf(new_path, sizeof(new_path), "karantina/decrypted/%s", decoded);
+            rename(old_path, new_path);
+        }
+        ...
+        sleep(10);
+    }
+}
+```
+Penjelasan:
+- Menjalankan sebagai daemon (proses latar belakang).
+- Setiap 10 detik mengecek folder karantina.
+- Mencoba mendekripsi nama file (yang diasumsikan dalam base64) menggunakan echo dan base64 -d.
+- Hasil dekripsi digunakan untuk mengganti nama file dan memindahkannya ke folder karantina/decrypted.
+
+### 5. Bagian utama (main function) Kode:
+```c
+int main(int argc, char *argv[]) {
+    if (argc == 2 && strcmp(argv[1], "--decrypt") == 0) {
+        decrypt_filenames();
+    } else if (strcmp(argv[1], "--quarantine") == 0) {
+        move_files("starter_kit", "karantina");
+    } else if (strcmp(argv[1], "--return") == 0) {
+        move_files("karantina", "starter_kit");
+    } else {
+        download_and_extract();
+    }
+}
+
+```
+Penjelasan:
+- Menentukan perintah yang dijalankan berdasarkan argumen CLI (command-line argument).
+- Memanggil fungsi sesuai instruksi pengguna.
+
 # Soal Keempat "Debugmon"
 
 Repository ini berisi source code program `debugmon.c`, sebuah program monitoring yang dibuat dengan bahasa C. Program ini memiliki beberapa command utama untuk mengelola proses milik user pada sistem Linux.
