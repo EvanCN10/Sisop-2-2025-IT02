@@ -619,13 +619,13 @@ if (strcmp(command, "list") == 0) {
             int pid = atoi(line);
             if (pid > 0) {
                 if (kill(pid, SIGKILL) == 0) {
-                    fprintf(log, "[%02d:%02d:%04d]-%02d:%02d:%02d_%d-FAILED\n",
+                    fprintf(log, "[%02d:%02d:%04d]-%02d:%02d:%02d_fail-FAILED\n",
                             localtime(&now)->tm_mday,
                             localtime(&now)->tm_mon + 1,
                             localtime(&now)->tm_year + 1900,
                             localtime(&now)->tm_hour,
                             localtime(&now)->tm_min,
-                            localtime(&now)->tm_sec, pid);
+                            localtime(&now)->tm_sec);
                 }
             }
         }
