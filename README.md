@@ -84,33 +84,58 @@ Fungsi ini digunakan untuk mengunduh file Clues.zip dari Google Drive, lalu meng
 ### 2. Menyaring file .txt tertentu dari 4 folder (Filtered)
 ```c
 void filter_files() {
-    const char *dirs[] = {"Clues/ClueA", "Clues/ClueB", "Clues/ClueC", "Clues/ClueD"};
+    DIR *dir;
+    struct dirent *entry;
     mkdir("Filtered", 0755);
 
+    const char *folders[] = {"Clues/ClueA", "Clues/ClueB", "Clues/ClueC", "Clues/ClueD"};
+    char src_path[512], dest_path[512];
+
     for (int i = 0; i < 4; i++) {
-        DIR *dir = opendir(dirs[i]);
+        dir = opendir(folders[i]);
         if (!dir) continue;
 
-        struct dirent *entry;
+        // 1. Simpan file valid ke Filtered
         while ((entry = readdir(dir)) != NULL) {
-            if (entry->d_type == DT_REG && strlen(entry->d_name) == 5 && strstr(entry->d_name, ".txt")) {
-                if (isalnum(entry->d_name[0]) && entry->d_name[1] == '.') {
-                   char src[256], dst[256];
-                   snprintf(src, sizeof(src), "%s/%s", dirs[i], entry->d_name);
-                   snprintf(dst, sizeof(dst), "Filtered/%s", entry->d_name);
-                   char *cp[] = {"cp", src, dst, NULL};
-                   run_command(cp);
-                }
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+
+            snprintf(src_path, sizeof(src_path), "%s/%s", folders[i], entry->d_name);
+
+            if (strlen(entry->d_name) == 5 &&
+                isalnum(entry->d_name[0]) &&
+                entry->d_name[1] == '.' &&
+                strcmp(&entry->d_name[2], "txt") == 0) {
+
+                snprintf(dest_path, sizeof(dest_path), "Filtered/%s", entry->d_name);
+                rename(src_path, dest_path);
             }
         }
+
+        closedir(dir);
+
+        // 2. Buka ulang dan hapus semua isi folder ClueX (valid udah dipindah)
+        dir = opendir(folders[i]);
+        if (!dir) continue;
+
+        while ((entry = readdir(dir)) != NULL) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+
+            snprintf(src_path, sizeof(src_path), "%s/%s", folders[i], entry->d_name);
+            unlink(src_path);
+        }
+
         closedir(dir);
     }
 
-    printf("Filtering selesai. File valid dipindah ke 'Filtered'.\n");
+    printf("Filtering selesai. File valid dipindah ke 'Filtered'. ClueA–D kini kosong.\n");
 }
+
 ```
 **Tujuan:** 
-Fungsi ini bertugas untuk menyaring file .txt tertentu dari 4 folder petunjuk (ClueA, ClueB, ClueC, ClueD) dan memindahkannya ke folder baru bernama Filtered. Hanya file dengan nama yang sesuai kriteria tertentu yang akan dipindahkan.
+Fungsi filter_files() bertugas untuk menyaring dan menyalin file .txt tertentu dari empat folder petunjuk (ClueA, ClueB, ClueC, dan ClueD) yang berada di dalam folder Clues. File yang memenuhi syarat tertentu akan dipindahkan ke folder baru bernama Filtered.
+Setelah proses selesai, seluruh isi dari folder ClueA akan dihapus, namun foldernya tetap ada.
 
 **Cara Kerja:**
 - Membuat folder Filtered sebagai tempat hasil penyaringan.
@@ -121,7 +146,7 @@ Fungsi ini bertugas untuk menyaring file .txt tertentu dari 4 folder petunjuk (C
      - Karakter pertama adalah alfanumerik (huruf atau angka).
      - Ekstensi file adalah .txt.
 - File yang lolos kriteria akan disalin ke folder Filtered menggunakan command cp yang dijalankan melalui fungsi run_command().
-
+- Setelah semua folder selesai diproses, semua file di Clues/ClueA akan dihapus dengan fungsi unlink() agar folder tersebut kosong.
 ### 3. menggabungkan isi dari file-file teks yang ada di FIltered(Combine.txt)
 ```c
 int compare(const void *a, const void *b) {
